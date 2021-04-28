@@ -1,72 +1,289 @@
 /*
- * SerialCommunication.c
+ * FinalProjectTest.c
  *
- * Created: 4/25/2021 9:41:00 PM
- * Author : jonah
+ * Created: 16/04/21 12:14:42 AM
+ * Author : rcmar
  */ 
 
 #define F_CPU 16000000UL
+#define PERIOD 100
+#define ARRAY_SIZE 100
 #define BAUD_RATE 9600
 #define BAUD_PRESCALER (((F_CPU / (BAUD_RATE * 16UL))) - 1)
-#define BUF_SIZE 400
+
 #include <avr/io.h>
-#include <avr/interrupt.h>
-#include <avr/sfr_defs.h>
-#include <string.h>
-#include <stdlib.h>
 #include <util/delay.h>
+#include <avr/interrupt.h>
 #include <stdio.h>
+#include "uart.h"
 
-#include "uart/uart.h"
-#include "SWSerial/SWseriale.h"
-//Function definitions
-void getString(void);
+char String[200];
+int print = 0;
 
-//Global variables
-char espString[BUF_SIZE];
-int validString = 0;
-void getString(void) {
+short int display[ARRAY_SIZE];
+int ticks_per_rotation = 15000;
+int ticks_per_part = 300;
+
+void Initialize()
+{
+	cli();
 	
-	int i = 0;
-	int startReading = 0;
-	//espString[0] = 0; //initialize ESPstring back to an empty
-	while (SWseriale_available()){ // Checks if any character has been received
-		validString = 1;
-		uint8_t temp = SWseriale_read(); // Reads one character from SWseriale received data buffer
+	int i;
+	
+	ticks_per_part = ticks_per_rotation/ARRAY_SIZE;
+	
+	//set up UART
+	//UART_init(BAUD_PRESCALER);
+	
+	DDRD = 0xFFFF;
+	PORTD |= (1<<PORTD1);
 		
-		char buf[2];
-		sprintf(buf, "%c\n", temp);
-		UART_putstring(buf);
-		if (i < BUF_SIZE) {
-			espString[i] = (char) temp;
-		} else {
-			break;
-		}
-		i++;
-		UART_putstring(espString);
-		UART_putstring("\n");
+	DDRB &= ~(1<<DDB0);
+	
+	DDRC |= (1<<DDC0);
+	PORTC |= (1<<PORTC0);
+	
+	//set clock prescaling to 1/64
+	TCCR1B |= (1<<CS10);
+	TCCR1B |= (1<<CS11);
+	TCCR1B &= ~(1<<CS12);
+	
+	//set timer to normal mode
+	TCCR1A &= ~(1<<WGM10);
+	TCCR1A &= ~(1<<WGM11);
+	TCCR1B &= ~(1<<WGM12);
+	TCCR1B &= ~(1<<WGM13);
+	
+	//start looking for a falling edge
+	TCCR1B &= ~(1<<ICES1);
+	
+	//turn on noise canceling
+	TCCR1B |= (1<<ICNC1);
+	
+	//Clear interrupt flag
+	TIFR1 |= (1<<ICF1);
+	
+	//enable interrupts
+	TIMSK1 |= (1<<ICIE1);
+	
+	for (i = 0; i < ARRAY_SIZE; i++){
+		display[i] = 0x0000; 
 	}
-	espString[i] = '\0';
-//	UART_putstring(espString);
-}
+	//for (i = 180; i < 360; i++){
+		//display[i] = 0xFFFF;
+	//}
+	
+	//jonah
+	
+	display[67] = 0x0011;
+	display[68] = 0x0011;
+	display[69] = 0x001F;
+	display[70] = 0x0001;
+	display[71] = 0x0001;
+	display[74] = 0x001F;
+	display[75] = 0x0011;
+	display[76] = 0x0011;
+	display[77] = 0x0011;
+	display[78] = 0x001F;
+	display[81] = 0x001F;
+	display[82] = 0x0003;
+	display[83] = 0x000E;
+	display[84] = 0x0018;
+	display[85] = 0x001F;
+	display[88] = 0x001F;
+	display[89] = 0x0005;
+	display[90] = 0x0005;
+	display[91] = 0x0005;
+	display[92] = 0x001F;
+	display[95] = 0x001F;
+	display[96] = 0x0004;
+	display[97] = 0x0004;
+	display[98] = 0x0004;
+	display[99] = 0x001F;
+	//*/
+	
+	
+	//camila
+	/*
+	display[67] = 0x001F;
+	display[68] = 0x0011;
+	display[69] = 0x0011;
+	display[70] = 0x0011;
+	display[71] = 0x0011;
+	display[74] = 0x001F;
+	display[75] = 0x0005;
+	display[76] = 0x0005;
+	display[77] = 0x0005;
+	display[78] = 0x001F;
+	display[81] = 0x001F;
+	display[82] = 0x0001;
+	display[83] = 0x0006;
+	display[84] = 0x0001;
+	display[85] = 0x001F;
+	display[88] = 0x0011;
+	display[89] = 0x0011;
+	display[90] = 0x001F;
+	display[91] = 0x0011;
+	display[92] = 0x0011;
+	display[95] = 0x001F;
+	display[96] = 0x0010;
+	display[97] = 0x0010;
+	display[98] = 0x0010;
+	display[99] = 0x0010;
+	display[2] = 0x001F;
+	display[3] = 0x0005;
+	display[4] = 0x0005;
+	display[5] = 0x0005;
+	display[6] = 0x001F;
+	//*/
+	
+	
+	//martina
+	/*
+	display[67] = 0x001F;
+	display[68] = 0x0001;
+	display[69] = 0x0006;
+	display[70] = 0x0001;
+	display[71] = 0x001F;
+	display[74] = 0x001F;
+	display[75] = 0x0005;
+	display[76] = 0x0005;
+	display[77] = 0x0005;
+	display[78] = 0x001F;
+	display[81] = 0x001F;
+	display[82] = 0x000D;
+	display[83] = 0x000D;
+	display[84] = 0x0015;
+	display[85] = 0x0017;
+	display[88] = 0x0001;
+	display[89] = 0x0001;
+	display[90] = 0x001F;
+	display[91] = 0x0001;
+	display[92] = 0x0001;
+	display[95] = 0x0011;
+	display[96] = 0x0011;
+	display[97] = 0x001F;
+	display[98] = 0x0011;
+	display[99] = 0x0011;
+	display[2] = 0x001F;
+	display[3] = 0x0003;
+	display[4] = 0x000E;
+	display[5] = 0x0018;
+	display[6] = 0x001F;
+	display[9] = 0x001F;
+	display[10] = 0x0005;
+	display[11] = 0x0005;
+	display[12] = 0x0005;
+	display[13] = 0x001F;
+	
+	//*/
 
+	//mari
+	/*
+	display[67] = 0x001F;
+	display[68] = 0x0001;
+	display[69] = 0x0006;
+	display[70] = 0x0001;
+	display[71] = 0x001F;
+	display[74] = 0x001F;
+	display[75] = 0x0005;
+	display[76] = 0x0005;
+	display[77] = 0x0005;
+	display[78] = 0x001F;
+	display[81] = 0x001F;
+	display[82] = 0x000D;
+	display[83] = 0x000D;
+	display[84] = 0x0015;
+	display[85] = 0x0017;
+	display[88] = 0x0011;
+	display[89] = 0x0011;
+	display[90] = 0x001F;
+	display[91] = 0x0011;
+	display[92] = 0x0011;
+	
+	//*/
 
-int main(void) {
+	//maya
+	/*
+	display[67] = 0x001F;
+	display[68] = 0x0001;
+	display[69] = 0x0006;
+	display[70] = 0x0001;
+	display[71] = 0x001F;
+	display[74] = 0x001F;
+	display[75] = 0x0005;
+	display[76] = 0x0005;
+	display[77] = 0x0005;
+	display[78] = 0x001F;
+	display[81] = 0x0007;
+	display[82] = 0x0004;
+	display[83] = 0x001C;
+	display[84] = 0x0004;
+	display[85] = 0x0007;
+	display[88] = 0x001F;
+	display[89] = 0x0005;
+	display[90] = 0x0005;
+	display[91] = 0x0005;
+	display[92] = 0x001F;
+	
+	//*/
+	
+	//clara
+	/*
+	display[64] = 0x001F;
+	display[65] = 0x0011;
+	display[66] = 0x0011;
+	display[67] = 0x0011;
+	display[68] = 0x0011;
+	display[71] = 0x001F;
+	display[72] = 0x0010;
+	display[73] = 0x0010;
+	display[74] = 0x0010;
+	display[75] = 0x0010;
+	display[78] = 0x001F;
+	display[79] = 0x0005;
+	display[80] = 0x0005;
+	display[81] = 0x0005;
+	display[82] = 0x001F;
+	display[85] = 0x001F;
+	display[86] = 0x000D;
+	display[87] = 0x000D;
+	display[88] = 0x0015;
+	display[89] = 0x0017;
+	display[92] = 0x001F;
+	display[93] = 0x0005;
+	display[94] = 0x0005;
+	display[95] = 0x0005;
+	display[96] = 0x001F;
+
+	//*/
+	
+	
 	sei();
-	SWseriale_begin(); // Initialize INT1, Timer2, Pin 3 (Input, Pull-up) and Pin 4 (Output)
-	
-	//SWseriale_write("HI",2);
-	UART_init(BAUD_PRESCALER);
-
-	
-	while (1) {
-		getString();
-		if (validString) {
-			UART_putstring("ESPstring is: \n");
-			UART_putstring(espString);
-			UART_putstring("\n");
-			validString = 0;
-		}
-		_delay_ms(10); // Wait 10 ms, optional
-	}
 }
+
+int main(void)
+{
+	
+	Initialize();
+	
+	
+    /* Replace with your application code */
+    while (1) 
+    {
+		
+		PORTD = display[((TCNT1/ticks_per_part) % ARRAY_SIZE)];
+		
+    }
+}
+
+//Hall Sensor Interrupt 
+
+ISR(TIMER1_CAPT_vect)
+{
+	ticks_per_rotation = ICR1;
+	TCNT1 = 0;
+	ticks_per_part = ticks_per_rotation/ARRAY_SIZE;
+	
+} 
+
