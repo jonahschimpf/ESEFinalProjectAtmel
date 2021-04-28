@@ -35,14 +35,13 @@ void Initialize()
 	//set up UART
 	//UART_init(BAUD_PRESCALER);
 	
-	DDRD = 0xFFFF;
-	PORTD |= (1<<PORTD1);
-		
+	//configure outputs
+	DDRD = 0x00F7;
+	DDRB |= (1<<DDB3);
+	
+	//configure input
 	DDRB &= ~(1<<DDB0);
-	
-	DDRC |= (1<<DDC0);
-	PORTC |= (1<<PORTC0);
-	
+		
 	//set clock prescaling to 1/64
 	TCCR1B |= (1<<CS10);
 	TCCR1B |= (1<<CS11);
@@ -272,7 +271,11 @@ int main(void)
     while (1) 
     {
 		
-		PORTD = display[((TCNT1/ticks_per_part) % ARRAY_SIZE)];
+		//PORTD = display[((TCNT1/ticks_per_part) % ARRAY_SIZE)];
+		int place = ((TCNT1/ticks_per_part) % ARRAY_SIZE);
+			
+		PORTD = (display[place] & ~(1<<3)) | (PORTD & (1<<3));
+		PORTB = (PORTB & ~(1<<3)) | (display[place] & (1<<3));
 		
     }
 }
