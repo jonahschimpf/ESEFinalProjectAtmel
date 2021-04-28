@@ -7,9 +7,14 @@
 
 #define F_CPU 16000000UL
 #define PERIOD 100
-#define ARRAY_SIZE 100
 #define BAUD_RATE 9600
 #define BAUD_PRESCALER (((F_CPU / (BAUD_RATE * 16UL))) - 1)
+
+#define ARRAY_SIZE 100
+#define BUFFER_SIZE 500
+
+#define DISPLAY_START 30
+#define DISPLAY_END 60
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -20,9 +25,49 @@
 char String[200];
 int print = 0;
 
+short int buffer[BUFFER_SIZE];
+int buffer_pointer;
+
 short int display[ARRAY_SIZE];
 int ticks_per_rotation = 15000;
 int ticks_per_part = 300;
+
+void moveText()
+{
+	int i;
+	
+	for (i = DISPLAY_START; i < DISPLAY_END; i++){
+		display[i] = display[i+1];
+	}
+	
+	buffer_pointer++;
+	
+	if((buffer[buffer_pointer] == 0x0A00) | (buffer_pointer == BUFFER_SIZE) ){
+		buffer_pointer = 0;
+	}
+	
+	display[DISPLAY_END - 1] = buffer[buffer_pointer];
+	
+}
+
+void initBuffer()
+{
+	int i;
+	int j = 0;
+	
+	for (i = DISPLAY_START; i < DISPLAY_END; i++){
+		
+		if(buffer[j] == 0x0A00){
+			j = 0;
+		}
+		
+		display[i] = buffer[j];
+		
+		j++;
+	}
+	
+	buffer_pointer = j - 1;
+}
 
 void Initialize()
 {
@@ -68,12 +113,78 @@ void Initialize()
 	for (i = 0; i < ARRAY_SIZE; i++){
 		display[i] = 0x0000; 
 	}
+	for (i = 0; i < BUFFER_SIZE; i++){
+		buffer[i] = 0x0000;
+	}
 	//for (i = 180; i < 360; i++){
 		//display[i] = 0xFFFF;
 	//}
 	
-	//jonah
+	buffer[9] = 0x0011;
+	buffer[10] = 0x0011;
+	buffer[11] = 0x001F;
+	buffer[12] = 0x0001;
+	buffer[13] = 0x0001;
+	buffer[16] = 0x001F;
+	buffer[17] = 0x0011;
+	buffer[18] = 0x0011;
+	buffer[19] = 0x0011;
+	buffer[20] = 0x001F;
+	buffer[23] = 0x001F;
+	buffer[24] = 0x0003;
+	buffer[25] = 0x000E;
+	buffer[26] = 0x0018;
+	buffer[27] = 0x001F;
+	buffer[30] = 0x001F;
+	buffer[31] = 0x0005;
+	buffer[32] = 0x0005;
+	buffer[33] = 0x0005;
+	buffer[34] = 0x001F;
+	buffer[37] = 0x001F;
+	buffer[38] = 0x0004;
+	buffer[39] = 0x0004;
+	buffer[40] = 0x0004;
+	buffer[41] = 0x001F;
+	buffer[48] = 0x001F;
+	buffer[49] = 0x0005;
+	buffer[50] = 0x0005;
+	buffer[51] = 0x0005;
+	buffer[52] = 0x001F;
+	buffer[55] = 0x001F;
+	buffer[56] = 0x0003;
+	buffer[57] = 0x000E;
+	buffer[58] = 0x0018;
+	buffer[59] = 0x001F;
+	buffer[62] = 0x001F;
+	buffer[63] = 0x0011;
+	buffer[64] = 0x0011;
+	buffer[65] = 0x0011;
+	buffer[66] = 0x000E;
+	buffer[73] = 0x001F;
+	buffer[74] = 0x000D;
+	buffer[75] = 0x000D;
+	buffer[76] = 0x0015;
+	buffer[77] = 0x0017;
+	buffer[80] = 0x001F;
+	buffer[81] = 0x0005;
+	buffer[82] = 0x0005;
+	buffer[83] = 0x0005;
+	buffer[84] = 0x001F;
+	buffer[87] = 0x001F;
+	buffer[88] = 0x0005;
+	buffer[89] = 0x0005;
+	buffer[90] = 0x0001;
+	buffer[93] = 0x001F;
+	buffer[94] = 0x0005;
+	buffer[95] = 0x0005;
+	buffer[96] = 0x0005;
+	buffer[97] = 0x001F;
+	buffer[104] = 0x0A00;
+
 	
+	
+	//jonah
+	/*
 	display[67] = 0x0011;
 	display[68] = 0x0011;
 	display[69] = 0x001F;
@@ -266,16 +377,19 @@ int main(void)
 	
 	Initialize();
 	
+	initBuffer();
+	
 	
     /* Replace with your application code */
     while (1) 
     {
 		
-		//PORTD = display[((TCNT1/ticks_per_part) % ARRAY_SIZE)];
 		int place = ((TCNT1/ticks_per_part) % ARRAY_SIZE);
 			
 		PORTD = (display[place] & ~(1<<3)) | (PORTD & (1<<3));
 		PORTB = (PORTB & ~(1<<3)) | (display[place] & (1<<3));
+		
+		moveText();
 		
     }
 }
