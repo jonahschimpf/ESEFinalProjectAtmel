@@ -20,7 +20,10 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
-#include "uart.h"
+#include "uart/uart.h" //Gotta follow path because of the way the project is organized
+#include "fonts/BMSPA_font.h" //Same path here
+
+
 
 char String[200];
 int print = 0;
@@ -370,6 +373,55 @@ void Initialize()
 	
 	
 	sei();
+}
+
+
+//Directly modifies the display array one at a time starting at index paramater
+//8 slots in display should be modified
+void putCharDisplay(char c, int index) {
+	int LEDSequence[8];
+	if (c <= 31) {
+		LEDSequence = font[0];
+	} else {
+		LEDSequence = font[c - 32];
+	}
+
+	for(int i = 0; i < 8; i++) {
+		display[i + index] = LEDSequence[i];
+	}
+}
+
+//Directly modifies the buffer array one at a time starting at index paramater
+//8 slots in buffer should be modified
+void putCharBuffer(unsigned char c, int index) {
+	int LEDSequence[8];
+	if (c <= 31) {
+		LEDSequence = font[0];
+	} else {
+		LEDSequence = font[c - 32];
+	}
+
+	for(int i = 0; i < 8; i++) {
+		buffer[i + index] = LEDSequence[i];
+	}
+}
+
+
+//Puts a string starting at a given index. Buffer is boolean indicating if buffer is being modified or display.
+void putString(char* str, int index, int buffer) {
+	if (buffer) {
+		while (*str != 0) {
+			putCharBuffer(*str, index);
+			index++;
+			str++;
+		}
+	} else {
+		while (*str != 0) {
+			putCharDisplay(*str, index);
+			index++;
+			str++;
+		}
+	}
 }
 
 int main(void)
